@@ -1,0 +1,89 @@
+\documentclass[12pt,a4paper]{article}
+%%%%%%%%%% pacotes
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[portuguese]{babel}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{
+    txfonts,
+    %cancel,
+    hyperref,
+    graphicx,
+}
+
+%%%%%%%%%% configs
+\title{Algoritmo 1: Perceptron}
+\author{Junior R. Ribeiro \\ \url{jrodrib@usp.br}}
+\date{\today}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+\setlength{\parskip}{12pt}
+\setlength{\parindent}{12pt}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\txt}[1]{\mbox{\texttt{#1}}}
+%%%%%%%%%% comandos
+
+\begin{document}
+
+\maketitle
+
+\section{Um Neurônio}
+Versão do algoritmo Perceptron, com 1 neurônio artificial.
+
+ENTRADA: 
+
+\[
+\Big\{x_j\in\mathbb{R}^m,\quad t_j\in\{-1,1\},\quad j=1,...,n\Big\}, \quad \epsilon>0, \quad 0<\eta\le 1, \quad \txt{maxit}=1e3.
+\]
+
+INÍCIO
+
+$\left\{
+\begin{aligned}
+w&=0_{1\times m}
+\\
+E &= 1_{1\times n}
+\\
+j&=0
+\\
+\theta &= 0
+\\
+\txt{count}&=0
+\end{aligned}
+\right.
+$
+
+WHILE$\Big( \txt{count}<\txt{maxit}\Big)$\\[-24pt]
+\begin{quote}
+$\txt{count++}$\\
+$\txt{j++}$\\
+IF$(\txt{j==n+1})$\\[-22pt]
+\begin{quote}
+$\txt{break}$
+\end{quote}
+$E_j = t_j-\sign\Big(\big\langle[x_j,-1],\ \ [w,\theta]\big\rangle\Big)$\\
+IF$(|E_j|<\epsilon)$\\[-24pt]
+\begin{quote}
+$\txt{continue}$
+\end{quote}
+$[w,\theta]=[w,\theta]+\eta E_j[x_j,-1]$\\
+$\txt{j}=0$
+%{\color{cyan}$\txt{j--}$ \hfill (você quer atualizar pesos até que o erro seja menor que a tolerância?)}\\
+
+
+\end{quote}
+
+
+
+
+
+\section{Multicamada}
+
+
+
+\end{document}
+
