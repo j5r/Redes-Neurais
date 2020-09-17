@@ -28,6 +28,7 @@
 %%%%%%%%%% comandos
 \def\RR{\mathbb{R}}
 \def\bfE{\mathbf{E}}
+
 \DeclareMathOperator{\logistic}{logistic}
 \begin{document}
 
@@ -44,9 +45,9 @@ As dimensões das variáveis usadas para cômputo do fluxo da rede são $m_0, m_
 As variáveis que efetuam o fluxo da rede são $y^\ell$ para cada camada $\ell=0,...,L$ (os superíndices indicam a camada em questão). Essas variáveis representam o valor de saída de cada nó.
 
 \subsection{Esboço do fluxo}
-Todos os índices neste texto foram pensados como iniciando em zero.
+Todos os índices neste texto foram pensados como iniciando em zero. Destacamos em {\color{purple} roxo} as principais partes para implementação.
 
-$
+$\color{purple}
 y^0(n) = \begin{bmatrix}
 1\\
 \bar x_0(n)\\
@@ -63,21 +64,20 @@ y^0(n) = \begin{bmatrix}
 \in \RR^{m_0}
 $
 
-\noindent e para as diversas camadas, temos
+\noindent e para as diversas camadas $\ell=0,...,L-1$, temos
 
 
-$
+$\color{purple}
 w^\ell = \begin{bmatrix}
 	b_0^\ell & W_{0,0}^\ell & .. & W_{0,m_\ell-2}^\ell\\
 	:\\
 	b_{m_{\ell+1}-2}^\ell & W_{m_{\ell+1}-2,0}^\ell & .. & W_{m_{\ell+1}-2,m_\ell-2}^\ell\\
 \end{bmatrix}
-\in \RR^{(m_{\ell+1}-1)\times m_\ell}
-,\qquad \ell=0,...,L-1;
+\in \RR^{(m_{\ell+1}-1)\times m_\ell};
 $
 
 
-$
+$\color{purple}
 v^{\ell+1}(n) = 
 \begin{bmatrix}
 v^{\ell+1}_0(n)\\
@@ -98,26 +98,22 @@ v^{\ell+1}_{m_{\ell+1}-2}(n)
 \end{bmatrix}
 \in \RR^{(m_{\ell+1}-1)},
 $
-
-\hfill$
-\ell=0,...,L-1;
-$
+ 
 
 
-$
-y^{\ell+1}(n) = \begin{bmatrix}
+$\color{purple}
+y^{\ell}(n) = \begin{bmatrix}
 	1\\
-	\logistic(v_0^{\ell+1}(n))\\
+	\logistic(v_0^{\ell}(n))\\
 	:\\
-	\logistic(v_{m_{\ell+1}-2}^{\ell+1}(n))
+	\logistic(v_{m_{\ell}-2}^{\ell}(n))
 \end{bmatrix}
-\in \RR^{m_{\ell+1}}
-,\qquad \ell=0,...,L-2;
+\in \RR^{m_{\ell+1}};
 $
 
 \noindent e por fim (não tem \textit{bias} na camada de saída)
 
-$
+$\color{purple}
 y^L(n) = \begin{bmatrix}
 	\varphi(v_0^L(n))\\
 	:\\
@@ -135,13 +131,23 @@ $
 e_k(n) = d_k(n) - y^L_k(n), \qquad k=0,...,m_L-1.
 $
 
+ou vetorialmente,
+
+$\color{purple}
+e(n) = d(n)-y(n) \in\RR^{m_L},
+$
+
 \noindent e o erro quadrático acumulado
 
 $
 \displaystyle E(n) = 0.5\sum_{k=0}^{m_L-1}e_k^2(n).
 $
 
+ou vetorialmente
 
+$\color{purple}
+E(n) = 0.5e(n)^Te(n) \in\RR
+$
 
 
 
@@ -186,15 +192,37 @@ $
 e_k(n) \cdot (-1) \cdot \varphi'(v_k^L(n)) \cdot y^{L-1}_j(n)
 $
 
+\noindent Vamos definir o produto ``ponto-a-ponto'' entre matrizes de mesma dimensão, como sendo
+
+$
+[A\bullet B]_{ij} = A_{ij}B_{ij}.
+$
+
+
 
 Defina
 
 \begin{equation}\label{delta-1}
 \delta^{L-1}_k(n) = -\dfrac{\partial E(n)}{\partial v^L_k(n)} = e_k(n) \varphi'(v_k^L(n))  
-, \quad k=0,...,m_L-1.
+, \quad k=0,...,m_L-1,
 \end{equation}
 
+ou vetorialmente
 
+\begin{itemize}\color{purple}
+\item quando $\varphi(z)=\logistic(z)$,
+\[
+\delta^{L-1}(n) = e(n)\bullet \logistic(v^L(n))\bullet \Big(\mathbf{1}-\logistic(v^{L}(n))\Big);
+\]
+\item quando $\varphi(z)=z$,
+\[
+\delta^{L-1}(n) = e(n);
+\]
+\item quando $\varphi(z)=\tanh(z)$,
+\[
+\delta^{L-1}(n) = e(n)\bullet \Big(\mathbf{1}-\tanh(v^L(n))\bullet \tanh(v^L(n))\Big).
+\]
+\end{itemize}
 
 
 Com essa definição, podemos escrever
@@ -234,8 +262,8 @@ e_k(n) \cdot (-1) \cdot
 \varphi'(v_k^{L}(n)) \cdot w_{kj}^{L-1} \cdot \logistic'(v_j^{L-1}(n)) \cdot y_i^{L-2}(n)
 \\
 &=\displaystyle-\logistic'(v_j^{L-1}(n)) \cdot y_i^{L-2}(n)\sum_{k=0}^{m_L-1}
-e_k(n) \cdot  
-\varphi'(v_k^{L}(n)) \cdot w_{kj}^{L-1} 
+\underbrace{e_k(n) \cdot  
+\varphi'(v_k^{L}(n))}_{\delta^{L-1}_k(n)} \cdot w_{kj}^{L-1} 
 \\
 &=\displaystyle-\logistic'(v_j^{L-1}(n))   y_i^{L-2}(n)\sum_{k=0}^{m_L-1}
 \delta^{L-1}_k(n)  w_{kj}^{L-1} .
@@ -251,8 +279,21 @@ Defina
 =\displaystyle
  \logistic'(v_j^{L-1}(n))   \sum_{k=0}^{m_L-1}
 \delta^{L-1}_k(n)  w_{kj}^{L-1} 
-, \quad j=0,...,m_{L-1}-1.
+, \quad j=0,...,m_{L-1}-1,
 \end{equation}
+
+ou vetorialmente, para a camada $\ell=0,...,L-2$,
+\[\color{purple}
+\delta^{\ell}(n)= \Bigg[
+\logistic(v^{\ell+1}(n))
+\bullet
+	\Big(
+	\mathbf{1}-\logistic(v^{\ell+1}(n))
+	\Big)
+\Bigg]
+\bullet \Big[(w^{\ell+1})^T\delta^{\ell+1}(n)\Big].
+\]
+
 
 Com essa definição, escrevemos
 
@@ -263,19 +304,40 @@ Com essa definição, escrevemos
 , \quad j=0,...,m_{L-1}-1 .
 \end{equation}
 
+
+O gradiente do erro em relação aos pesos, ou seja, a derivada de primeira ordem da função erro $E(n)$ em relação a cada $w_{rs}^\ell$ de cada camada $\ell=0,...,L-1$ é a coleção de matrizes $w^{\ell}$. Perceba que não é um vetor, nem uma matriz, mas uma coleção de matrizes.
+
 \subsection{Direção de descida}
-Em um método de minimização de primeira ordem, a ideia principal é caminhar na direção oposta à do gradiente. Portanto, o incremento $\Delta w$ que atualiza cada um dos pesos $w$, na forma $w^\ell\gets w^\ell+ \Delta w^\ell$, com tamanho de passo $\alpha>0$ segue
+Em um método de minimização de primeira ordem, a ideia principal é caminhar na direção oposta à do gradiente. Portanto, o incremento $\Delta w_\rho(n)$ da iteração/ciclo $\rho$ que atualiza cada um dos pesos $w$, na forma $\color{purple}w^\ell_{\rho+1}\gets w^\ell_{\rho}+ \Delta w^\ell_\rho(n)$, com tamanho de passo $0<\eta\le1$ é dado por
 
 \begin{equation}
-\Delta w^{\ell}_{sr} = \alpha \delta_s^{\ell}(n)y_r^{\ell}(n),
+\Delta w^{\ell}_{sr}(n) = \eta \delta_s^{\ell}(n)y_r^{\ell}(n),
 \quad r=0,...,m_{\ell}-1 
 \quad s=0,...,m_{\ell+1}-1,
 \quad \ell=0,...,L-1,
 \end{equation}
-que matricialmente é
+
+ou vetorialmente, para $\ell=0,...,L-1$
+
+$\color{purple}
+\Delta w^\ell_\rho(n) = \eta\delta^\ell(n)(y^\ell(n))^T.
 $
-\Delta w^\ell = \alpha\delta^\ell(y^\ell)^T
+
+Se quisermos adicionar Momentum, precisamos armazenar $\Delta w^\ell_{\rho-1}(n)$ da iteração $\rho-1$ e dar uma constante $0<\alpha<1$ com 
+
+$\color{purple}
+\Delta w^\ell_\rho(n) = \eta\delta^\ell(n)(y^\ell(n))^T
++\alpha \Delta w^\ell_{\rho-1}(n).
 $
+
+O termo Momentum nada mais é do que o gradiente da iteração anterior. Para inicializar o termo Momentum, comece-o em zero.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.6\textwidth]{momentum}
+\caption{Ilustração do termo Momentum afetando a direção de descida.}
+\end{figure}
+
+
 
 \section{Função de ativação}
 Em problemas de regressão segundo \cite{riedmiller}, usamos uma função linear, $\varphi(z)=z$ e portanto a derivada é a função constante $\varphi'(z)=1$, vide equação \eqref{delta-1}.
@@ -302,20 +364,20 @@ $
 $, vide equações \eqref{delta-1} e \eqref{delta:}.
 
 
-\section{Otimização}
-Agora que já sabemos como calcular o erro $E$ e as taxas de variação de $w$ em todas as camadas, podemos aplicar qualquer método de minimização de primeira ordem, como por exemplo, o chamado método de gradientes com uma busca linear para resolver o problema
+\section{Modo cíclico}
+Agora que já sabemos como calcular o erro $E$ e as taxas de variação de $E$ em função de $w$ em todas as camadas, podemos aplicar qualquer método de minimização de primeira ordem. Na seção ``Direção de descida'' é dado um método com tamanho de passo fixo $\eta$, mas podemos fazer inúmeras variações de algoritmo de forma a torná-lo adaptativo, ou mesmo estocástico. Escrevendo o problema de otimização, temos
 \[
-\underset{W}{\mbox{minimizar }} E(W),
+\underset{W}{\mbox{minimizar }} E(W,n),
 \]
 \[
  W=\big\{w^\ell_{i,j}
  \quad i=0,...,m_{\ell+1}-1, \quad j=0,...,m_\ell-1,\quad \ell=0,...,L-1
-\big\}.
+\big\}
 \]
 
+$W$ é a coleção de todos os parâmetros ajustáveis da rede, ou seja, os pesos. O erro $E(W,n) $ depende dos pesos da $W$ rede e do padrão $n$ apresentado.
 
-
-\section{Minhas considerações}
+\section{Modo \textit{batch}}
 Defina o erro quadrático total
 
 $\displaystyle
@@ -328,7 +390,7 @@ $\displaystyle
 \dfrac{\partial \bfE}{\partial w^{\ell}_{sr}} = \sum_{n=0}^{N-1} \dfrac{\partial E(n)}{\partial w^{\ell}_{sr}}.
 $
 
-\noindent A direção de descida global é então a soma das direções de descida para cada padrão. Com isso, podemos aplicar um método de otimização nessa direção, com uma busca linear, por exemplo.
+\noindent A direção de descida global é então a soma das direções de descida para cada padrão. Com isso, podemos aplicar a otimização nessa direção.
 
 O problema de otimização agora é
 \[
@@ -340,7 +402,7 @@ O problema de otimização agora é
 \big\}.
 \]
 
-
+Perceba que a função $\bfE(W)$ depende apenas dos pesos $W$ da rede e não depende do padrão $n$, pois já leva em consideração todos os padrões (ou parte deles).
 
 
 
