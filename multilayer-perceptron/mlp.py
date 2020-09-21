@@ -58,7 +58,7 @@ class Layer:
             )
 
     def initweigths(self):
-        if self.cols and not self.islast:
+        if not self.islast:
             self.weigths = np.random.normal(
                 0, 1,
                 size=(self.rows, self.cols)
