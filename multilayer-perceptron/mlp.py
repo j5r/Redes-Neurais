@@ -37,6 +37,9 @@ class Layer:
         self.next = next_
         self.my_n = n
         self.activation_function = actf
+        if self.islast:
+            self.activation_function = None
+
         if self.activation_function == "logistic":
             self.func = logistic
             self.dfunc = dlogistic
@@ -53,8 +56,6 @@ class Layer:
                 "\033[91mActivation function not recognized.\n" +
                 "Set up some as 'logistic', 'linear' or 'tanh'.\033[m"
             )
-        if self.islast:
-            self.activation_function = None
 
     def initweigths(self):
         if self.cols and not self.islast:
