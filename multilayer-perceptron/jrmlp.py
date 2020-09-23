@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from random import shuffle
 
-# counts the number of neurons from the input to the output layer
-number_of_neurons_by_layer = [2, 2, 1]
-
 # INITIALIZING GLOBAL VARIABLES
+global layers
+global ERROR
+global number_of_neurons_by_layer
 layers = []
 ERROR = []
 
@@ -18,50 +18,56 @@ def dlogistic(x: np.array):
     return logistic(x)*(1-logistic(x))
 
 
-# BEGIN INITIALIZING THE LAYERS
-"""
-"y" is the concatenation of "1" and "v", the first layer has only this parameter;
-"v" is the flow vector;
-"weigths" are the concatenation of a column of biases followed by columns of weigths;
-"biases" are the first column of "weigths";
-"delta" is the lower-case delta from class notes (derivative of squared error with
-respect to "v");
-"Delta_w" is the upper-case Delta from class notes (the step for updating the
-weigths: it need one more parameter, the length-step of gradient descent method,
-the parameter <eta> from class notes);
-"error" is the error vector between the desired and the obtained outputs, it is
-stored only at the last layer;
-"error2" is the summation of squared errors calculated at the vector "error", it
-is also stored only at the last layer;
-"""
-for i in range(len(number_of_neurons_by_layer)):
-    if i == 0:
+def init(nneurons):
+    global number_of_neurons_by_layer
+    number_of_neurons_by_layer = nneurons
+    """
+    "number_of_neurons_by_layer" is a list that counts the number of neurons
+    from the input to the output layer
+    "y" is the concatenation of "1" and "v", the first layer has only this parameter;
+    "v" is the flow vector;
+    "weigths" are the concatenation of a column of biases followed by columns of weigths;
+    "biases" are the first column of "weigths";
+    "delta" is the lower-case delta from class notes (derivative of squared error with
+    respect to "v");
+    "Delta_w" is the upper-case Delta from class notes (the step for updating the
+    weigths: it need one more parameter, the length-step of gradient descent method,
+    the parameter <eta> from class notes);
+    "error" is the error vector between the desired and the obtained outputs, it is
+    stored only at the last layer;
+    "error2" is the summation of squared errors calculated at the vector "error", it
+    is also stored only at the last layer;
+    """
+    layers.clear()
+    for i in range(len(number_of_neurons_by_layer)):
+        if i == 0:
+            y = np.ones((number_of_neurons_by_layer[i]+1, 1))
+            d = {"y": y}
+            layers.append(d)
+            continue
+        w = np.random.normal(0, 1, (
+            number_of_neurons_by_layer[i],
+            number_of_neurons_by_layer[i-1]+1
+        ))
+        b = w[:, 0]
         y = np.ones((number_of_neurons_by_layer[i]+1, 1))
-        d = {"y": y}
+        v = y[1:, :]
+        delta = np.zeros(v.shape)
+        Delta_w = np.zeros(w.shape)
+        d = {"weigths": w, "biases": b, "y": y,
+             "v": v, "delta": delta, "Delta_w": Delta_w}
         layers.append(d)
-        continue
-    w = np.random.normal(0, 1, (
-        number_of_neurons_by_layer[i],
-        number_of_neurons_by_layer[i-1]+1
-    ))
-    b = w[:, 0]
-    y = np.ones((number_of_neurons_by_layer[i]+1, 1))
-    v = y[1:, :]
-    delta = np.zeros(v.shape)
-    Delta_w = np.zeros(w.shape)
-    d = {"weigths": w, "biases": b, "y": y,
-         "v": v, "delta": delta, "Delta_w": Delta_w}
-    layers.append(d)
-layers[-1]["error"] = 0*layers[-1]["y"][1:, :].copy()
-layers[-1]["error2"] = 0
+    layers[-1]["error"] = 0*layers[-1]["y"][1:, :].copy()
+    layers[-1]["error2"] = 0
 # END: INITIALIZING THE LAYERS
 
 
 def flow(input_):
     """
-    makes the flow of a given input through the network,
+    it makes the flow of a given input through the network,
     all data are stored in the layers "y" and "v"
     """
+    global number_of_neurons_by_layer
     if len(input_) != number_of_neurons_by_layer[0]:
         raise IndexError(
             f"\033[91mInput length is incorrect. It must be {number_of_neurons_by_layer[0]}.\033[m")
@@ -74,9 +80,10 @@ def flow(input_):
 
 def error(input_, output):
     """
-    computes the error vector between desired and obtained output,
+    it computes the error vector between desired and obtained output,
     stored at the last layer
     """
+    global number_of_neurons_by_layer
     if len(output) != number_of_neurons_by_layer[-1]:
         raise IndexError(
             f"\033[91mDesired output length is incorrect. It must be {number_of_neurons_by_layer[-1]}.\033[m")
@@ -87,7 +94,7 @@ def error(input_, output):
 
 def error2(input_, output):
     """
-    computes the sum of quadratic error of a given input,
+    it computes the sum of quadratic error of a given input,
     stored at the last layer
     """
     error(input_, output)
@@ -95,6 +102,9 @@ def error2(input_, output):
 
 
 def backpropagate(eta, momentum):
+    """
+    it computes "delta" and "Delta_w"
+    """
     for i_lay in range(len(layers)-1, 0, -1):
         lay = layers[i_lay]
         if i_lay == len(layers)-1:
@@ -107,11 +117,17 @@ def backpropagate(eta, momentum):
 
 
 def updateweigths():
+    """
+    once you have "Delta_w", it makes $ w <- w + Delta_w
+    """
     for i_lay in range(1, len(layers)):
         layers[i_lay]["weigths"] += layers[i_lay]["Delta_w"]
 
 
 def getweigths():
+    """
+    it gets the list of weigths
+    """
     ls = []
     for i_lay in range(1, len(layers)):
         ls.append(layers[i_lay]["weigths"])
@@ -119,6 +135,9 @@ def getweigths():
 
 
 def get_Delta_weigths():
+    """
+    it gets the list of "Delta_w"
+    """
     ls = []
     for i_lay in range(1, len(layers)):
         ls.append(layers[i_lay]["Delta_w"])
@@ -126,16 +145,28 @@ def get_Delta_weigths():
 
 
 def setweigths(ls):
+    """
+    it sets the list of "weigths": they must be of the same type of data (numpy.array)
+    and same dimension.
+    """
     for i_lay in range(1, len(layers)):
         layers[i_lay]["weigths"] = ls[i_lay-1]
 
 
 def set_Delta_weigths(ls):
+    """
+    it sets the list of "Delta_w": they must be of the same type of data (numpy.array)
+    and same dimension.
+    """
     for i_lay in range(1, len(layers)):
         layers[i_lay]["Delta_w"] = ls[i_lay-1]
 
 
 def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False):
+    """
+    it performs the cyclic mode of training
+    """
+    global ERROR
     ERROR.clear()
     min_error = 100
     ins_outs = list(zip(inputs, outputs))
@@ -150,7 +181,7 @@ def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False
             try:
                 if ERROR[-1] < min_error:
                     min_error = ERROR[-1]
-                    w = getweigths()
+                    optimal_w = getweigths()
                     min_error_counter = counter
                     print(
                         f"Minimum error = {min_error}, at counter = {min_error_counter}", end="\r")
@@ -158,9 +189,12 @@ def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False
                 pass
             backpropagate(eta, momentum)
             updateweigths()
-    setweigths(w)
+    setweigths(optimal_w)
     print(f"\vMinimum error reached at the {min_error_counter}st cycle")
     if plot:
+        if len(ERROR) > 2000:
+            l = int(np.ceil(len(ERROR)/1000))
+            ERROR = ERROR[0:-1:l]
         plt.plot(np.arange(len(ERROR)), ERROR, "b*-")
         plt.xlabel("Number of cycles")
         plt.ylabel("Sum of quadratic errors")
@@ -170,6 +204,10 @@ def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False
 
 
 def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False):
+    """
+    it performs the batch mode of training
+    """
+    global ERROR
     ERROR.clear()
     min_error = 100
     ins_outs = list(zip(inputs, outputs))
@@ -191,7 +229,7 @@ def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False)
         try:
             if ERROR[-1] < min_error:
                 min_error = ERROR[-1]
-                w = getweigths()
+                optimal_w = getweigths()
                 min_error_counter = counter
                 print(
                     f"Minimum error = {min_error}, at counter = {min_error_counter}", end="\r")
@@ -206,9 +244,12 @@ def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False)
             )
         set_Delta_weigths(Delta_w)
         updateweigths()
-    setweigths(w)
+    setweigths(optimal_w)
     print(f"\vMinimum error reached at the {min_error_counter}st cycle")
     if plot:
+        if len(ERROR) > 2000:
+            l = int(np.ceil(len(ERROR)/1000))
+            ERROR = ERROR[0:-1:l]
         plt.plot(np.arange(len(ERROR)), ERROR, "b*-")
         plt.xlabel("Number of cycles")
         plt.ylabel("Sum of quadratic errors")
@@ -217,6 +258,41 @@ def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False)
         plt.show()
 
 
-IN = [[0, 0], [0, 1], [1, 0], [1, 1]]
-OUT = [[0], [1], [1], [0]]
-train_batch(IN, OUT, plot=True, momentum=0.1, eta=1, maxit=100000)
+def test(inputs, outputs, plot=False):
+    ins_outs = list(zip(inputs, outputs))
+    errors = []
+    for io in ins_outs:
+        i, o = io
+        error2(i, o)
+        errors.append(layers[-1]["error2"].item())
+    if plot:
+        if len(errors) > 2000:
+            l = int(np.ceil(len(errors)/1000))
+            errors = errors[0:-1:l]
+        plt.plot(np.arange(len(errors)), errors, "b*-")
+        plt.xlabel("pattern to test")
+        plt.ylabel("Sum of quadratic errors")
+        plt.title("ERROR vs PATTERN")
+        plt.grid()
+        plt.show()
+    mean = sum(errors)/len(errors)
+    print(f"TEST SAYS: Mean square error is {mean}.")
+    return errors, mean
+
+
+def save(filename):
+    W = getweigths()
+    file = open(filename, "w")
+    file.write("import numpy as np\n\n")
+    file.write("weigths = [\n")
+    for w in W:
+        file.write("np.")
+        file.write(w[:, 1:].__repr__()+",\n")
+    file.write("]\n\n")
+
+    file.write("biases = [\n")
+    for w in W:
+        file.write("np.")
+        file.write(w[:, 0].__repr__()+",\n")
+    file.write("]\n\n")
+    file.close()
