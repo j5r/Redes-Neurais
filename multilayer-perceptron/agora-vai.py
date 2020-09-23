@@ -35,6 +35,9 @@ for i in range(len(number_of_neurons_by_layer)):
 
 
 def flow(input_):  # DONE
+    if len(input_) != number_of_neurons_by_layer[0]:
+        raise IndexError(
+            f"\033[91mInput length is incorrect. It must be {number_of_neurons_by_layer[0]}.\033[m")
     layers[0]["y"][1:] = np.array(input_).flatten().reshape(len(input_), 1)
     for i_lay in range(1, len(layers)):
         layers[i_lay]["v"][:] = logistic(
@@ -42,5 +45,21 @@ def flow(input_):  # DONE
         )
 
 
-flow([1, 1])
-_ = [print(i) for i in layers]
+def error(input_, output):
+    if len(output) != number_of_neurons_by_layer[-1]:
+        raise IndexError(
+            f"\033[91mDesired output length is incorrect. It must be {number_of_neurons_by_layer[-1]}.\033[m")
+    output = np.array(output).reshape(len(output), 1)
+    flow(input_)
+    return output - layers[-1]["v"]
+
+
+def error2(input_, output):
+    e = error(input_, output)
+    return e.T @ e
+
+
+print(error2([1, 1], [1, 1]))
+
+
+# _ = [print(i) for i in layers]
