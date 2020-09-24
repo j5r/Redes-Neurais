@@ -1,0 +1,164 @@
+\documentclass[12pt,a4paper]{article}
+%%%%%%%%%% pacotes
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[portuguese]{babel}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{
+    pxfonts,
+    %cancel,
+    hyperref,
+    graphicx,
+    float,
+}
+
+%%%%%%%%%% configs
+\title{Multi Layer Perceptron\\MLP}
+\author{Junior R. Ribeiro \\ \url{jrodrib@usp.br}}
+\date{\today}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+\setlength{\parskip}{12pt}
+\setlength{\parindent}{12pt}
+
+%%%%%%%%%% comandos
+\def\RR{\mathbb{R}}
+\def\bfE{\mathbf{E}}
+
+\DeclareMathOperator{\logistic}{logistic}
+\begin{document}
+
+\maketitle\tableofcontents
+
+\section{Multicamadas}
+
+Sejam dados $n$ padrões para treinamento da rede neural, com as entradas e saídas desejadas $\big\{\bar x(n)\in\RR^{x}, d(n)\in\RR^{\gamma_L}\big\}$.
+
+Considere $L\ge2$ e as camadas $\ell=0,1,...,L$,
+em que $\ell=0$ é a camada de entrada, onde os padrões $\bar x(n)$ são apresentados, e em cada camada $\ell=1,...,L$ temos $\gamma_\ell$ neurônios artificiais. A camada de saída $\ell=L$ precisa ter o mesmo número de neurônios que as saídas desejadas $d(n)$, ou seja $\gamma_L$ neurônios na camada $L$. Todas as demais camadas $\ell=1,...,L-1$ são as camadas ocultas.
+
+Os vetores de fluxo serão indicados por $v^\ell(n) \in\RR^{\gamma_\ell}$ para cada camada $\ell=1,...,L$. Vamos precisar aplicar uma função de ativação nesse vetor de fluxo a cada camada \textit{forward}, obtendo $\varphi(v^\ell(n))\in\RR^{\gamma_\ell}$, vamos chamá-lo de vetor de fluxo ativado. Para este texto, a função de ativação será a sigmoide $\varphi(z)=1/(1+\exp(-z))$.
+
+Vamos chamar os vetores $y^\ell(n)$ de \textit{entrada} da camada $\ell+1$. Eles são a concatenação do número $1$ com o vetor de fluxo ativado $\varphi(v^\ell(n))$, da seguinte forma
+\[
+y^\ell(n)=
+\begin{bmatrix}
+	1\\
+	\varphi(v^\ell(n))
+\end{bmatrix}\in\RR^{\gamma_\ell+1},
+\]
+para todas as camadas $\ell=1,...,L$.
+
+Na camada de entrada, temos
+\[
+y^{(0)}(n)=
+\begin{bmatrix}
+1\\
+\bar x(n)
+\end{bmatrix}\in\RR^{x+1}
+\]
+
+
+As matrizes de pesos e os vetores de \textit{biases} são $b^\ell$ são $W^\ell$ para $\ell=1,...,L$. Suas dimensões são $b^\ell\in\RR^{\gamma_\ell}$ e $W^\ell\in\RR^{(\gamma_\ell\; \times\; \gamma_{\ell-1})}$. Na primeira camada, temos, $W^1\in\RR^{(\gamma_1 \;\times\; x)}$.. Por praticidade, vamos definir a matriz $w^\ell = [b^\ell \ \ W^\ell]$
+\[
+w^\ell = 
+\begin{bmatrix}
+	b_1^\ell & W_{::}^\ell & ... & W_{::}^\ell\\
+	:\\
+	b_{\gamma_\ell}^\ell & W_{::}^\ell & ... & W_{::}^\ell
+\end{bmatrix}.
+\]
+
+\subsection{Forward propagation}
+Dado um par $\big\{\bar x(n), d(n)\big\}$, definimos $y^{(0)}(n)$ e mais adiante definimos o erro obtido. Para calcular os vetores de fluxo, fazemos a multiplicação matricial
+\[
+v^{\ell}(n) = w^\ell y^{\ell-1}(n)
+\]
+para $\ell=1,...,L$, considerando a definição de $y^\ell(n)$ e $w^\ell$ acima.
+
+O erro obtido ao efetuar o fluxo da entrada $\bar x(n)$ pela rede é dado pela diferença entre a saída desejada $d(n)$ e o vetor de fluxo ativado da última camada,
+\[
+e(n) = d(n) - \varphi(v^L(n)).
+\]
+O erro quadrático é então
+\[
+E(n) = 0.5e(n)^Te(n).
+\]
+
+\subsection{Back propagation}
+Vamos definir a multiplicação ``ponto-a-ponto'' entre matrizes de mesmas dimensões como sendo $[A \bullet B]_{rs}=A_{rs}B_{rs}$.
+
+
+
+Para cada camada $\ell=L,...,1$, vamos definir o vetor $\delta^\ell(n)$ de mesma dimensão de $v^\ell(n)$ e a matriz $\Delta w^\ell(n)$ de mesma dimensão de $w^\ell$.
+
+Para $\ell=L$, defina
+\[
+\delta^\ell(n) = e(n) \bullet \varphi(v^\ell(n)) \bullet (\mathbf{1} - \varphi(v^\ell(n)))
+\]
+em que $\mathbf{1}$ representa o vetor de uns $[1,1,...,1]^T$ de dimensões apropriadas.
+
+Definimos $\delta^\ell(n)$ para as camadas $\ell=L-1,...,1$ da seguinte forma:
+\[
+\delta^\ell(n) =\varphi(v^\ell(n)) \bullet (\mathbf{1}- \varphi(v^\ell(n))) \bullet \Big[(W^{\ell+1})^T\delta^{\ell+1}(n)\Big].
+\]
+Repare na equação acima, que usamos apenas a parte dos pesos $W^{\ell+1}$ sem os \textit{biases}.
+
+Uma vez calculados os $\delta^\ell(n)$, e dado um tamanho de passo $0<\eta\le1$, calculamos
+\[
+\Delta w^\ell(n) = \eta\delta^\ell(n) (y^{\ell-1}(n))^T
+\]
+para todas as camadas $\ell=1,...,L$.
+
+\subsection{Atualizando os pesos/\textit{biases}}
+Modo \textit{batch}: calculamos, para cada  padrão $n=1,...,N$ os incrementos $\Delta w^\ell(n)$ para todas as camadas $\ell=1,...,L$. A atualização dos pesos no ciclo seguinte é a soma desses incrementos:
+\[
+w^\ell \gets w^\ell + \sum_{n=1}^N \Delta w^\ell(n).
+\]
+Perceba que os pesos/biases só são modificados depois de serem considerados todos os padrões.
+
+Modo padrão, ou modo cíclico: a cada padrão $n$ apresentado, atualizamos os pesos:
+\[
+w^\ell \gets w^\ell + \Delta w^\ell(n).
+\]
+Perceba que os pesos/biases são modificados a cada novo padrão apresendado.
+ 
+ 
+ 
+ 
+ 
+
+\phantomsection\addcontentsline{toc}{section}{Referências}
+\bibliographystyle{unsrt}
+\begin{thebibliography}{9}	
+\bibitem{riedmiller}
+Riedmiller, Martin. \textit{Machine learning: multi layer perceptrons}. Disponível \href{http://ml.informatik.uni-freiburg.de/former/_media/documents/teaching/ss09/ml/mlps.pdf}{aqui}.
+
+
+\bibitem{haykin2}
+Haykin, Simon. \textit{Neural networks: a comprehensive fondation}. 2a.ed. Singapore: Prentice Hall, 1999. 
+Disponível \href{https://www.researchgate.net/profile/Ashraf_Khalaf3/post/Does_anyone_have_current_information_on_back-propagation_in_artificial_neural_networks/attachment/59d621a279197b8077980002/AS%3A297484992696331%401447937358281/download/Neural+Networks+-+A+Comprehensive+Foundation+-+Simon+Haykin.pdf}{aqui}.
+
+\bibitem{haykin3}
+Haykin, Simon. \textit{Neural networks and learning machines}. 3a.ed. New Jersey: Prentice Hall, 2008. Disponível 
+\href{http://dai.fmph.uniba.sk/courses/NN/haykin.neural-networks.3ed.2009.pdf}{aqui}. 
+
+
+
+\end{thebibliography}
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
