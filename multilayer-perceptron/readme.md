@@ -13,11 +13,11 @@
 
 Este exercício implementa o algoritmo para Rede Perceptron Multicamada
 
-1. resolver o problema XOR com 2 neurônios na camada única oculta, com entradas de dimensão $n=2$ e saídas de dimensão $m=1$.
+1. resolver o problema XOR com **2** neurônios na camada única oculta, com entradas de dimensão **n=2** e saídas de dimensão **m=1**.
 
-2. resolver o "auto-associador" com $\log_2(n)$ neurônios na única camada oculta, com entradas de dimensão $n=8$ e saídas de dimensão $m=15$.
+2. resolver o "auto-associador" com ![log](https://latex.codecogs.com/png.latex?\dpi{80}&space;\large&space;\lceil\\;\mathbf{log_2(n)}\\;\rceil) neurônios na única camada oculta, com entradas de dimensão **n=8** e saídas de dimensão **m=8**.
 
-2. resolver o "auto-associador" com $\log_2(n)$ neurônios na única camada oculta, com entradas de dimensão $n=15$ e saídas de dimensão $m=15$.
+2. resolver o "auto-associador" com ![log](https://latex.codecogs.com/png.latex?\dpi{80}&space;\large&space;\lceil\\;\mathbf{log_2(n)}\\;\rceil) neurônios na única camada oculta, com entradas de dimensão **n=15** e saídas de dimensão **m=15**.
 
 
 # REQUERIMENTOS
