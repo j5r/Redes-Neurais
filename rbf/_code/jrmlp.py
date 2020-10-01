@@ -98,7 +98,8 @@ def error2(input_, output):
     stored at the last layer
     """
     error(input_, output)
-    layers[-1]["error2"] = layers[-1]["error"].T @ layers[-1]["error"]
+    layers[-1]["error2"] = 0.5*layers[-1]["error"].T @ layers[-1]["error"]
+    return layers[-1]["error2"].copy().item()
 
 
 def backpropagate(eta, momentum):
@@ -140,8 +141,13 @@ def get_Delta_weigths():
     """
     ls = []
     for i_lay in range(1, len(layers)):
-        ls.append(layers[i_lay]["Delta_w"])
+        ls.append(layers[i_lay]["Delta_w"].copy())
     return ls
+
+
+def set_Delta_w_to_zero():
+    for i_lay in range(1, len(layers)):
+        layers[i_lay]["Delta_w"] *= 0
 
 
 def setweigths(ls):
@@ -162,16 +168,19 @@ def set_Delta_weigths(ls):
         layers[i_lay]["Delta_w"] = ls[i_lay-1]
 
 
-def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False):
+def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False, init_momentum=False):
     """
     it performs the cyclic mode of training
     """
     global ERROR
     ERROR.clear()
+    if init_momentum:
+        set_Delta_w_to_zero()
     min_error = 100
     ins_outs = list(zip(inputs, outputs))
     counter = 0
     while counter <= maxit:
+        eta *= 0.9995
         counter += 1
         shuffle(ins_outs)
         for pair in ins_outs:
@@ -184,13 +193,13 @@ def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False
                     optimal_w = getweigths()
                     min_error_counter = counter
                     print(
-                        f"Minimum error = {min_error}, at counter = {min_error_counter}", end="\r")
+                        "At counter = {:5d}, the minimum error is {:.5g}".format(min_error_counter, min_error), end="\r")
             except:
                 pass
             backpropagate(eta, momentum)
             updateweigths()
     setweigths(optimal_w)
-    print(f"\vMinimum error reached at the {min_error_counter}st cycle")
+    print(f"\vMinimum error reached at the {min_error_counter}th cycle")
     if plot:
         if len(ERROR) > 2000:
             l = int(np.ceil(len(ERROR)/1000))
@@ -203,16 +212,19 @@ def train_cyclic(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False
         plt.show()
 
 
-def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False):
+def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False, init_momentum=False):
     """
     it performs the batch mode of training
     """
     global ERROR
     ERROR.clear()
+    if init_momentum:
+        set_Delta_w_to_zero()
     min_error = 100
     ins_outs = list(zip(inputs, outputs))
     counter = 0
     while counter <= maxit:
+        eta *= 0.9995
         counter += 1
         shuffle(ins_outs)
         Dws = []
@@ -232,7 +244,7 @@ def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False)
                 optimal_w = getweigths()
                 min_error_counter = counter
                 print(
-                    f"Minimum error = {min_error}, at counter = {min_error_counter}", end="\r")
+                    "At counter = {:5d}, the minimum error is {:.5g}".format(min_error_counter, min_error), end="\r")
         except:
             pass
         Delta_w = []
@@ -245,7 +257,7 @@ def train_batch(inputs, outputs, eta=0.55, maxit=1000, momentum=0.1, plot=False)
         set_Delta_weigths(Delta_w)
         updateweigths()
     setweigths(optimal_w)
-    print(f"\vMinimum error reached at the {min_error_counter}st cycle")
+    print(f"\vMinimum error reached at the {min_error_counter}th cycle")
     if plot:
         if len(ERROR) > 2000:
             l = int(np.ceil(len(ERROR)/1000))
@@ -265,6 +277,7 @@ def test(inputs, outputs, plot=False):
         i, o = io
         error2(i, o)
         errors.append(layers[-1]["error2"].item())
+    mean_error = sum(errors)/len(errors)
     if plot:
         if len(errors) > 2000:
             l = int(np.ceil(len(errors)/1000))
@@ -275,9 +288,9 @@ def test(inputs, outputs, plot=False):
         plt.title("ERROR vs PATTERN")
         plt.grid()
         plt.show()
-    mean = sum(errors)/len(errors)
-    print(f"TEST SAYS: Mean square error is {mean}.")
-    return errors, mean
+
+    print(f"TEST SAYS: Mean square error is {mean_error}.")
+    return errors, mean_error
 
 
 def save(filename):
@@ -287,12 +300,6 @@ def save(filename):
     file.write("weigths = [\n")
     for w in W:
         file.write("np.")
-        file.write(w[:, 1:].__repr__()+",\n")
-    file.write("]\n\n")
-
-    file.write("biases = [\n")
-    for w in W:
-        file.write("np.")
-        file.write(w[:, 0].__repr__()+",\n")
+        file.write(w.__repr__()+",\n")
     file.write("]\n\n")
     file.close()
