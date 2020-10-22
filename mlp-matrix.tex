@@ -1,0 +1,220 @@
+\documentclass[12pt,a4paper]{article}
+%%%%%%%%%% pacotes
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[portuguese]{babel}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{
+    txfonts,
+    %cancel,
+    hyperref,
+    graphicx,
+}
+
+%%%%%%%%%% configs
+\title{MULTI LAYER PERCEPTRON\\detalhes para implementação}
+\author{Junior R. Ribeiro \\ \url{jrodrib@usp.br}}
+\date{\today}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=purple,
+}
+\setlength{\parskip}{12pt}
+\setlength{\parindent}{12pt}
+
+%%%%%%%%%% comandos
+\def\RR{\mathbb{R}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Forwardpropagation de uma entrada}
+Exemplo com duas camadas ocultas:
+
+Dada uma entrada $x_1\in\RR^{n_1}$ e a saída desejada $y\in\RR^{n_3}$, fazemos
+\begin{equation}
+\begin{aligned}
+W_1x_1+b_1 &= v_1&\in\RR^{n_2}\\
+&\downarrow\\
+\phi_1(v_1) &= x_2&\in\RR^{n_2}\\
+&\downarrow\\
+W_2x_2+b_2 &= v_2&\in\RR^{n_3}\\
+&\downarrow\\
+\phi_2(v_2) &= x_3&\in\RR^{n_3}\\
+&\downarrow\\
+e &= y-x_3&\in\RR^{n_3}\\
+&\downarrow\\
+E&=0.5e^Te&\in\RR\\
+&\downarrow\\
+\mathbf{mse}&=\frac{E}{n_ 3}&\in\RR.
+\end{aligned}
+\end{equation}
+
+
+\section{Backpropagation}
+\subsection{Multiplicação ponto-a-ponto}
+Vamos definir uma multiplicação de matrizes de dimensões iguais da seguinte forma:
+\[
+[A\bullet B]_{ij}=A_{ij}B_{ij}.
+\]
+\subsection{Regra $\delta$}
+Defina os seguintes deltas como segue:
+\begin{equation}
+\begin{aligned}
+\delta_2 &= e \bullet \phi_2'(v_2)&\in\RR^{n_2}\\
+&\downarrow\\
+\delta_1 &= \phi_1'(v_1) \bullet [W_2^T\delta_2]&\in\RR^{n_1}
+\end{aligned}
+\end{equation}
+
+Para uma rede com mais camadas, basta calcular os 
+\[
+\delta_{\ell-1}=\phi_{\ell-1}(v_{\ell-1}) \bullet [W_\ell ^T\delta_ \ell]\in\RR^{n_\ell}.
+\]
+
+
+\section{Gradiente do erro em relação aos pesos e biases}
+O oposto\footnote{Se colocarmos um sinal negativo nessas equações, temos exatamente as equações do gradiente.} do gradiente do erro quadrático $E$ em relação aos pesos e biases é dado por
+\begin{equation}
+\begin{aligned}
+\tilde\Delta W_1 &= \delta_1x_1^T &\in \RR^{n_2\times n_1}\\
+&\downarrow\\
+\tilde\Delta b_1 &= \delta_1 & \in\RR^{n_2}\\
+&\downarrow\\
+\tilde\Delta W_2 &= \delta_2x_2^T &\in \RR^{n_3\times n_2}\\
+&\downarrow\\
+\tilde\Delta b_2 &= \delta_2 & \in\RR^{n_3}\\
+\end{aligned}
+\end{equation}
+
+etc.
+
+\section{Atualização do pesos e biases}
+\subsection{Gradiente estocástico}
+A cada atualização, podemos atualizar um conjunto de pesos e biases e deixar outros no mesmo lugar em que estão (não atualizar), fazendo essa escolha aleatoriamente. Isso às vezes facilita a convergência. Para tanto, podemos zerar algumas componentes dos $\{\tilde\Delta W_\ell\}_{\ell\in HL}$ e dos $\{\tilde\Delta b_\ell\}_{\ell\in HL}$. 
+
+Para implementá-lo, basta sortear algumas matrizes binárias (de zeros e uns) $\{\widehat\Delta W_\ell\}_{\ell\in HL}$ e $\{\widehat\Delta b_\ell\}_{\ell\in HL}$ e fazer
+\[
+\tilde\Delta W_\ell \gets \tilde\Delta W_\ell \ \bullet\  \widehat\Delta W_\ell
+\]
+\[
+\tilde\Delta b_\ell \gets \tilde\Delta b_\ell \ \bullet\  \widehat\Delta b_\ell
+\]
+para cada ${\ell\in HL}$.
+
+
+
+
+\subsection{Busca linear}
+Já sabemos calcular o gradiente e portanto já temos as direções de descida da superfície de erro. Para saber o tamanho de passo, podemos realizar uma busca linear nessa direção, com a condição de Armijo (busca inexata), por biseção simples ou biseção com razão áurea (busca exata), por exemplo (vide \cite[Seção 4.2.2]{karas}). 
+
+O cálculo da melhor taxa de aprendizagem $\eta$ a cada atualização dos pesos pode ser feita de forma adaptativa conforme os algoritmos de busca linear supracitados, mas isso adicionará complexidade ao algoritmo, e pode torná-lo mais pesado (por esse motivo, a recomendação para a taxa adaptativa é uma busca linear inexata, por ser menos custosa).
+
+Outra estratégia é manter a taxa $\eta$ constante, mas isso pode fazer o algoritmo ter dificuldades para convergir, e portanto, uma ideia seria adicionar um termo \textit{momentum}.
+
+\subsection{\textit{Momentum}}
+O termo \textit{momentum} consiste de uma fração $0<\alpha<1$ da direção de descida da atualização anterior, de modo que podemos escrever, para cada $\ell\in HL$:
+\[
+\Delta_{\text{mom}}W_\ell = \alpha \Delta W_\ell^{--},
+\]
+\[
+\Delta_{\text{mom}} b_\ell = \alpha  \Delta b_\ell^{--}.
+\]
+
+Inicializamos esse termos $\Delta W_\ell^{--}$ e $\Delta b_\ell^{--}$ em zero na primeira atualização, pois ainda não temos o gradiente da ``atualização anterior''.
+
+
+\subsection{Atualização dos pesos e biases}
+Calculadas as direções de descida $\{\tilde\Delta W_\ell,\ \tilde\Delta b_\ell\}_{\ell\in HL}$ para todas as camadas ocultas $\ell$, e calculada a taxa de aprendizado $\eta$ (adaptativa ou constante), calculamos os incrementos dos pesos e biases:
+\[
+\Delta W_\ell = \eta \tilde\Delta W_\ell+\Delta_{\text{mom}}W_\ell
+\]
+\[
+\Delta b_\ell = \eta \tilde\Delta b_\ell+\Delta_{\text{mom}}b_\ell
+\]
+
+e portanto atualizamos
+
+\[
+W_\ell \gets W_\ell +\Delta W_\ell
+\]
+\[
+b_\ell  \gets b_\ell + \Delta b_\ell.
+\]
+
+\section{Modo \textit{batch} de treinamento}
+Consiste em tomar um conjunto de entradas e saídas $\{(X_1,Y_1), ...,(X_N,Y_N)\}$ e apresentá-los à rede, calculando as direções de descida $\{\tilde\Delta W_\ell,\ \tilde\Delta b_\ell\}_{\ell\in HL}$. Após calculá-las, separadamente, toma-se como a direção de descida para esse \textit{batch} a soma das direções de descida de cada entrada $k=1,...,N$, ou seja
+\[
+\tilde\Delta W_\ell \gets \sum_{k=1}^{N}\tilde\Delta W_\ell^{(k)}
+\]
+\[
+\tilde\Delta b_\ell \gets \sum_{k=1}^{N}\tilde\Delta b_\ell^{(k)}
+\]
+
+
+
+
+\section{Função de ativação}
+Para um dado vetor $\mathbf{z}\in\RR^n$, e com $\mathbf{0,1}\in\RR^n$:
+\def\z{\mathbf{z}}
+\[
+\begin{cases}
+\phi(\z) = (\mathbf{1}+\exp(-\z))^{-1} &\in (0,1) \quad \mbox{(Logística)}\\
+\phi'(\z) = \phi(\z) \ \bullet\ (\mathbf{1}-\phi(\z))
+\end{cases}
+\]
+\[
+\begin{cases}
+\phi(\z) = (\exp(2\z)-\mathbf{1})\bullet(\exp(2\z)+\mathbf{1})^{-1} & \in (-1,1)\quad \mbox{(Tangente hiperbólica)}\\
+\phi'(\z) = \mathbf{1}-\phi(\z)\ \bullet\ \phi(\z)
+\end{cases}
+\]
+\[
+\begin{cases}
+\phi(\z) = \max(\mathbf{0},\z) & \in(0,\infty) \quad \mbox{(ReLu)}\\
+\phi'(\z) = \mathbf{1}\ (\z>\mathbf{0})
+\end{cases}
+\]
+
+
+
+
+
+\section{Validação cruzada}
+Dado o conjunto de dados com $N$ pares de entradas e saídas (padrões), e dado um número de \textit{folds} $K$, embaralhamos os $N$ padrões para que não fiquem em uma ordem específica, dividimo-los em $K$ \textit{folds} com aproximadamente o mesmo número de padrões $\lceil N/K\rceil$ em cada fold.
+
+Em dois laços do tipo \textit{for}, fazemos:
+\begin{itemize}
+\item for \textbf{k} from $0$ until $K-1$
+\begin{itemize}
+\item take the \textbf{k}-th folder as a \textbf{testing folder}
+\item take the other $K-1$ folders as \textbf{training folders}
+\item for \textbf{folder} in \textbf{training folders}
+\begin{itemize}
+\item train the MLP with these patterns (as a batch mode or a one-at-time mode)
+\end{itemize}
+\item you have  trained the MLP. Now, test it with the \textbf{testing folder}
+\item compute the  hits and misses and the \textbf{mse} for each pattern and store these values \\$\{hits,misses,\{mse\}\}$
+\end{itemize}
+\end{itemize}
+Now compute the accuracy as the sum of hits divided by $N$. Do the same with the misses to compute the inaccuracy. Compute the mean error of all patterns as the mean of the $\{mse\}$'s stored; compute the standard deviation too.
+
+Para comparar duas ou mais configurações da MLP (arquitetura, parâmetros, etc), faça a validação cruzada e verifique a acurácia.
+
+Para mais detalhes, vide \cite{cv}.
+
+\addcontentsline{toc}{section}{Referências }
+\begin{thebibliography}{9}
+\bibitem{karas} 
+Ribeiro, Ademir Alves; Karas,  Elizabeth Wegner. \textbf{Um curso de otimização}. Curitiba, 2010. Disponível neste \href{https://www.ime.unicamp.br/~sandra/MS629/handouts/livro28jul.pdf}{link}. Acesso em 21 de outubro de 2020.
+\bibitem{cv}
+ StatQuest with Josh Starmer. \textbf{Fundamentos de aprendizado de máquina: Validação Cruzada}. Youtube Video. Disponível neste \href{https://youtu.be/fSytzGwwBVw}{link}. Acesso em 21 de outubro de 2020.
+\end{thebibliography}
+
+
+\end{document}
+
